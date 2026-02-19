@@ -8,7 +8,7 @@ from sklearn.preprocessing import LabelEncoder
 
 st.set_page_config(page_title="Smart Agriculture Advisory", layout="wide")
 
-st.title("🌾 Smart Agriculture Yield & Advisory System")
+st.title("🌾 Smart Agriculture Crop Yield & Growth Advisory System")
 
 # -------------------------
 # DATASET GENERATION
@@ -84,6 +84,13 @@ model.fit(X, y)
 # UI SECTION
 # -------------------------
 
+st.header("Enter Your Location Details")
+col_loc1, col_loc2 = st.columns(2)
+with col_loc1:
+    state_input = st.text_input("State (optional)")
+with col_loc2:
+    city_input = st.text_input("City (optional)")
+
 st.header("Enter Soil & Nutrient Values")
 
 col1, col2 = st.columns(2)
@@ -91,18 +98,18 @@ col1, col2 = st.columns(2)
 with col1:
     crop_input = st.selectbox("Select Crop", crop_encoder.classes_)
     soil_input = st.selectbox("Select Soil Type", soil_encoder.classes_)
-    K = st.number_input("Potassium (ppm)", 0.0)
-    Ca = st.number_input("Calcium (ppm)", 0.0)
-    Mg = st.number_input("Magnesium (ppm)", 0.0)
-    Na = st.number_input("Sodium (%)", 0.0)
+    K = st.number_input("Potassium (ppm)", min_value=80, max_value=300, value=80, step=1)
+    Ca = st.number_input("Calcium (ppm)", min_value=500, max_value=40000, value=500, step=1)
+    Mg = st.number_input("Magnesium (ppm)", min_value=1000, max_value=16000, value=1000, step=1)
+    Na = st.number_input("Sodium (%)", min_value=0.01, max_value=8.0, value=0.01, step=0.01, format="%.2f")
 
 with col2:
-    P = st.number_input("Phosphorus (ppm)", 0.0)
-    S = st.number_input("Sulfur (ppm)", 0.0)
-    Fe = st.number_input("Iron (ppm)", 0.0)
-    Zn = st.number_input("Zinc (ppm)", 0.0)
-    Mn = st.number_input("Manganese (ppm)", 0.0)
-    B = st.number_input("Boron (ppm)", 0.0)
+    P = st.number_input("Phosphorus (ppm)", min_value=50, max_value=2500, value=50, step=1)
+    S = st.number_input("Sulfur (ppm)", min_value=50, max_value=2500, value=50, step=1)
+    Fe = st.number_input("Iron (ppm)", min_value=4000, max_value=60000, value=4000, step=1)
+    Zn = st.number_input("Zinc (ppm)", min_value=5, max_value=300, value=5, step=1)
+    Mn = st.number_input("Manganese (ppm)", min_value=100, max_value=12000, value=100, step=1)
+    B = st.number_input("Boron (ppm)", min_value=2, max_value=200, value=2, step=1)
 
 if st.button("Predict Yield & Advisory"):
 
@@ -147,7 +154,11 @@ if st.button("Predict Yield & Advisory"):
     # -------------------------
 
     st.subheader("📋 Farmer Advisory Report")
+    # display state and city entered
 
+    st.write("**State:**", state_input)
+    st.write("**City:**", city_input)
+    
     st.write("**Crop:**", crop_input)
     st.write("**Soil:**", soil_input)
 
