@@ -3,7 +3,12 @@ import numpy as np
 import pandas as pd
 import random
 import matplotlib.pyplot as plt
+
+from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.preprocessing import LabelEncoder
 
 st.set_page_config(page_title="Smart Agriculture Advisory", layout="wide")
@@ -67,7 +72,10 @@ for _ in range(3000):
 columns = ["Crop","Soil","K","Ca","Mg","Na","P","S","Fe","Zn","Mn","B","Yield"]
 df = pd.DataFrame(data, columns=columns)
 
-# Encoding
+# =====================================================
+# ENCODING
+# =====================================================
+
 crop_encoder = LabelEncoder()
 soil_encoder = LabelEncoder()
 
@@ -77,8 +85,40 @@ df["Soil"] = soil_encoder.fit_transform(df["Soil"])
 X = df.drop("Yield", axis=1)
 y = df["Yield"]
 
-model = RandomForestRegressor()
-model.fit(X, y)
+# =====================================================
+# MODEL TRAINING
+# =====================================================
+
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+models = {
+    "Linear Regression": LinearRegression(),
+    "Decision Tree": DecisionTreeRegressor(random_state=42),
+    "Random Forest": RandomForestRegressor(n_estimators=200, random_state=42)
+}
+
+results = {}
+metrics_table = []
+
+for name, model in models.items():
+    model.fit(X_train, y_train)
+    y_pred = model.predict(X_test)
+
+    mae = mean_absolute_error(y_test, y_pred)
+    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+    r2 = r2_score(y_test, y_pred)
+
+    cv_score = cross_val_score(model, X, y, cv=5).mean()
+
+    results[name] = r2
+
+    metrics_table.append([name, mae, rmse, r2, cv_score])
+
+best_model_name = max(results, key=results.get)
+best_model = models[best_model_name]
+
 
 # -------------------------
 # UI SECTION
@@ -87,11 +127,11 @@ model.fit(X, y)
 st.header("Enter Your Location Details")
 col_loc1, col_loc2 = st.columns(2)
 with col_loc1:
-    state_input = st.text_input("State (optional)")
+    state_input = st.text_input("State")
 with col_loc2:
-    city_input = st.text_input("City (optional)")
+    city_input = st.text_input("City")
 
-st.header("Enter Soil & Nutrient Values")
+st.header("🧪 Enter Soil & Nutrient Values")
 
 col1, col2 = st.columns(2)
 
@@ -111,7 +151,7 @@ with col2:
     Mn = st.number_input("Manganese (ppm)", min_value=100, max_value=12000, value=100, step=1)
     B = st.number_input("Boron (ppm)", min_value=2, max_value=200, value=2, step=1)
 
-if st.button("Predict Yield & Advisory"):
+if st.button("🔍 Predict Yield & Advisory"):
 
     encoded_crop = crop_encoder.transform([crop_input])[0]
     encoded_soil = soil_encoder.transform([soil_input])[0]
@@ -126,6 +166,28 @@ if st.button("Predict Yield & Advisory"):
 
     input_df = pd.DataFrame([input_data])
     before_yield = model.predict(input_df)[0]
+
+    # =====================================================
+    # MODEL PERFORMANCE DISPLAY
+    # =====================================================
+
+    st.subheader("📊 Model Performance Evaluation")
+
+    metrics_df = pd.DataFrame(
+        metrics_table,
+        columns=["Model","MAE","RMSE","R2 Score","Cross Val Score"]
+    )
+
+    st.dataframe(metrics_df)
+    st.success(f"Best Model Selected: {best_model_name}")
+
+    # Feature Importance
+    if best_model_name == "Random Forest":
+        st.subheader("📌 Feature Importance (Random Forest)")
+        importances = best_model.feature_importances_
+        fig2, ax2 = plt.subplots()
+        ax2.barh(X.columns, importances)
+        st.pyplot(fig2)
 
     # -------------------------
     # ADVISORY LOGIC
@@ -154,7 +216,6 @@ if st.button("Predict Yield & Advisory"):
     # -------------------------
 
     st.subheader("📋 Farmer Advisory Report")
-    # display state and city entered
 
     st.write("**State:**", state_input)
     st.write("**City:**", city_input)
@@ -178,7 +239,8 @@ if st.button("Predict Yield & Advisory"):
     # -------------------------
 
     fig, ax = plt.subplots()
-    ax.bar(["Before","After"], [before_yield, after_yield])
+    ax.bar(["Before Yield","After Yield"], [before_yield, after_yield],
+           color=["orange","green"])
     ax.set_ylabel("Yield (tons/hectare)")
     ax.set_title("Yield Improvement Analysis")
     st.pyplot(fig)
